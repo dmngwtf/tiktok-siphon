@@ -1,34 +1,42 @@
 # downloader.py
 import httpx
-import re
+import hashlib
 from pathlib import Path
-from utils import get_stable_video_id
 from cache import get_cached_filepath, set_cached_filepath, clear_expired
 
 VIDEO_DIR = "videos"
 Path(VIDEO_DIR).mkdir(exist_ok=True)
 
+def get_video_id_from_url(url: str) -> str:
+    """
+    Делает SHA-256 хеш от исходной ссылки.
+    Без редиректов, без ожидания.
+    """
+    url = url.strip().lower()  # нормализация
+    return hashlib.sha256(url.encode("utf-8")).hexdigest()
+
 async def download_and_cache(tiktok_url: str) -> str | None:
     """
-    Скачивает видео по ссылке TikTok.
-    Использует хеш URL как ключ.
-    Возвращает путь к файлу (кэшируется).
+    Скачивает видео TikTok.
+    Ключ кэша — хеш от исходной ссылки.
     """
-    # 1. Получаем стабильный хеш
-    video_id = await get_stable_video_id(tiktok_url)
-    if not video_id:
-        print("[downloader] Не удалось получить video_id")
-        return None
+    # 1. КЛЮЧ КЭША — сразу от ссылки
+    video_id = get_video_id_from_url(tiktok_url)
+    print(f"[downloader] Ключ кэша: {video_id[:16]}...")
 
-    # 2. Проверяем кэш: хеш → путь
+    # 2. Проверяем кэш
     cached_path = get_cached_filepath(video_id)
     if cached_path:
+        print(f"[cache] ХИТ: {cached_path}")
         return cached_path
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # 3. Запрос к tikwm API
-            resp = await client.get("https://www.tikwm.com/api/", params={"url": tiktok_url})
+            # 3. TikWM API
+            resp = await client.get(
+                "https://www.tikwm.com/api/",
+                params={"url": tiktok_url, "hd": 1}
+            )
             data = resp.json()
 
             if data.get("code") != 0:
@@ -36,28 +44,28 @@ async def download_and_cache(tiktok_url: str) -> str | None:
                 return None
 
             video_url = data["data"]["play"]
-            title = data["data"].get("title", "")[:50]  # ограничиваем
+            title = data["data"].get("title", "")[:50]
 
-            # 4. Формируем имя файла
+            # 4. Имя файла
             safe_title = "".join(c for c in title if c.isalnum() or c in " _-").strip()
             suffix = f"_{safe_title}" if safe_title else ""
-            filename = f"video_{video_id[:12]}{suffix}.mp4"  # короткий хеш в имени
+            filename = f"video_{video_id[:12]}{suffix}.mp4"
             filepath = Path(VIDEO_DIR) / filename
 
             # 5. Скачиваем
             print(f"[downloader] Скачиваем → {filename}")
             video_resp = await client.get(video_url, timeout=120.0)
             if video_resp.status_code != 200:
-                print("[downloader] Ошибка загрузки видео")
+                print("[downloader] Ошибка загрузки")
                 return None
 
             filepath.write_bytes(video_resp.content)
             size_mb = filepath.stat().st_size / (1024 * 1024)
             print(f"[downloader] Сохранено: {filepath} ({size_mb:.1f} МБ)")
 
-            # 6. Сохраняем в кэш: хеш → путь
+            # 6. КЭШИРУЕМ
             set_cached_filepath(video_id, str(filepath))
-            clear_expired()  # опционально
+            clear_expired()
 
             return str(filepath)
 
@@ -66,7 +74,7 @@ async def download_and_cache(tiktok_url: str) -> str | None:
         return None
 
 
-# === Тест ===
+# === ТЕСТ ===
 if __name__ == "__main__":
     import asyncio
     url = input("Введите ссылку TikTok: ")
