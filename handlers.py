@@ -5,6 +5,7 @@ from aiogram import types, F
 from aiogram.filters import CommandStart
 from aiogram.types import FSInputFile
 from downloader import download_and_cache
+from db.crud import add_user_video
 
 # Регулярка TikTok
 TIKTOK_PATTERN = re.compile(
@@ -21,6 +22,7 @@ async def cmd_start(message: types.Message):
 # Обработка ссылок
 async def handle_tiktok(message: types.Message):
     url = message.text.strip()
+    user_id = message.from_user.id
     t_total = time.time()
 
     # — Проверка ссылки
@@ -52,6 +54,8 @@ async def handle_tiktok(message: types.Message):
         await message.answer("Ошибка при отправке в Telegram.")
         print(f"[bot] Ошибка отправки: {e}")
         return
+    language = message.from_user.language_code or "unknown"
+    await add_user_video(user_id=user_id, url=url, region = language)
 
     # — Отчёт
     t_end = time.time()
