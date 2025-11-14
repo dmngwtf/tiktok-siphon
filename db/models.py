@@ -11,3 +11,4 @@ class UserVideo(Base):
     url = Column(Text, primary_key=True)
     added_at = Column(TIMESTAMP, server_default=text("now()"))
     region = Column(Text, nullable=True)
+    suffix = Column(Text, nullable=True)

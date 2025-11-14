@@ -33,7 +33,7 @@ async def handle_tiktok(message: types.Message):
     t_check = time.time()
 
     # — Скачивание
-    file_path = await download_and_cache(url)
+    file_path,suffix = await download_and_cache(url)
     t_download = time.time()
 
     if not file_path:
@@ -55,7 +55,7 @@ async def handle_tiktok(message: types.Message):
         print(f"[bot] Ошибка отправки: {e}")
         return
     language = message.from_user.language_code or "unknown"
-    await add_user_video(user_id=user_id, url=url, region = language)
+    await add_user_video(user_id=user_id, url=url, region = language, suffix = suffix )
 
     # — Отчёт
     t_end = time.time()

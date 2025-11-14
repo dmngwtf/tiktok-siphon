@@ -15,7 +15,7 @@ def get_video_id_from_url(url: str) -> str:
     url = url.strip().lower()  # нормализация
     return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
-async def download_and_cache(tiktok_url: str) -> str | None:
+async def download_and_cache(tiktok_url: str) -> tuple[str | None, str | None]:
     """
     Скачивает видео TikTok.
     Ключ кэша — хеш от исходной ссылки.
@@ -28,7 +28,7 @@ async def download_and_cache(tiktok_url: str) -> str | None:
     cached_path = get_cached_filepath(video_id)
     if cached_path:
         print(f"[cache] ХИТ: {cached_path}")
-        return cached_path
+        return cached_path, ''
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -49,6 +49,13 @@ async def download_and_cache(tiktok_url: str) -> str | None:
             # 4. Имя файла
             safe_title = "".join(c for c in title if c.isalnum() or c in " _-").strip()
             suffix = f"_{safe_title}" if safe_title else ""
+
+
+            #SUFFIX!!!!!!!!
+
+
+
+            print(f"SUFFIX = {suffix}")
             filename = f"video_{video_id[:12]}{suffix}.mp4"
             filepath = Path(VIDEO_DIR) / filename
 
@@ -67,7 +74,7 @@ async def download_and_cache(tiktok_url: str) -> str | None:
             set_cached_filepath(video_id, str(filepath))
             clear_expired()
 
-            return str(filepath)
+            return str(filepath), suffix
 
     except Exception as e:
         print(f"[downloader] Ошибка: {e}")
