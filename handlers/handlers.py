@@ -15,7 +15,7 @@ FILE_CACHE = {}
 URL_PATTERNS = {
     "tiktok": re.compile(r"https?://(?:vm\.|vt\.|t\.|www\.|m\.)?tiktok\.com", re.IGNORECASE),
     "instagram": re.compile(r"https?://(?:www\.)?instagram\.com", re.IGNORECASE),
-    "youtube": re.compile(r"https?://(?:www\.)?youtube\.com/shorts/", re.IGNORECASE)
+    "youtube": re.compile(r"https?://(?:www\.)?(?:youtube\.com|youtu\.be)/(?:shorts/)?", re.IGNORECASE)
 }
 
 def get_recognize_keyboard(file_hash: str):

@@ -85,20 +85,85 @@ async def download_instagram(url: str) -> tuple[str | None, str | None]:
         logger.exception(f"[instagram] Ошибка: {e}")
         return None, None
 
+
+
+import asyncio
+from pathlib import Path
+import yt_dlp
+
+async def download_youtube(url: str) -> tuple[str | None, str | None]:
+    """
+    Скачивает YouTube / Shorts видео через yt_dlp.
+    Возвращает (filepath, suffix) или (None, None).
+    """
+    try:
+        video_id = get_video_id_from_url(url)
+        # Сначала получаем метаданные, чтобы взять название
+        ydl_info_opts = {
+            "quiet": True,
+            "no_warnings": True,
+            "skip_download": True,
+        }
+
+        def _extract_info():
+            with yt_dlp.YoutubeDL(ydl_info_opts) as ydl:
+                return ydl.extract_info(url, download=False)
+
+        info = await asyncio.to_thread(_extract_info)
+        title = info.get("title", "video")[:50]
+        suffix = sanitize_title(title)
+
+        filename = f"yt_{video_id[:12]}_{suffix}.mp4"
+        filepath = Path(VIDEO_DIR) / filename
+
+        ydl_opts = {
+            "outtmpl": str(filepath),
+            "format": "mp4",
+            "quiet": True,
+            "no_warnings": True,
+        }
+
+        def _download_blocking():
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+
+        await asyncio.to_thread(_download_blocking)
+
+        if not filepath.exists():
+            return None, None
+
+        size_mb = filepath.stat().st_size / (1024 * 1024)
+        logger.info(f"[youtube] Скачано: {filepath} ({size_mb:.1f} МБ)")
+        return str(filepath), suffix
+
+    except Exception as e:
+        logger.exception(f"[youtube] Ошибка: {e}")
+        return None, None
+
+
+
 # ====== Словарь сервисов ======
 
 SERVICES = {
     "tiktok": download_tiktok,
     "instagram": download_instagram,
+    "youtube": download_youtube
 }
 
 def detect_service(url: str) -> str | None:
     url_lower = url.lower()
+
     if "tiktok.com" in url_lower:
         return "tiktok"
+
     if "instagram.com" in url_lower:
         return "instagram"
+
+    if "youtube.com" in url_lower or "youtu.be" in url_lower:
+        return "youtube"
+
     return None
+
 
 # ====== Универсальная функция ======
 

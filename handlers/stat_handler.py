@@ -28,7 +28,7 @@ async def show_stats_page(message_or_callback: types.Message | types.CallbackQue
         await _answer_or_edit(message_or_callback, "Ты ещё не скачивал видео.")
         return
 
-    text = f"<b>Твои скачанные видео:</b> ({total} всего)\n\n"
+    text = f"<b>Твоя статистика по скачанным видео:</b> ({total} всего)\n\n"
 
     for i, (url, suffix) in enumerate(page_videos, 1):
         global_idx = start + i
