@@ -1,6 +1,6 @@
 # db/crud.py
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy import select
+from sqlalchemy import select,func
 from .models import UserVideo
 from .database import AsyncSessionLocal
 
@@ -33,3 +33,17 @@ async def get_users_by_url(url: str):
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(UserVideo.user_id).where(UserVideo.url == url))
         return result.scalars().all()
+    
+async def get_total_videos() -> int:
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(func.count()).select_from(UserVideo))
+        return result.scalar_one()
+
+async def get_region_stats() -> list[tuple[str, int]]:
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(UserVideo.region, func.count())
+            .group_by(UserVideo.region)
+            .order_by(func.count().desc())
+        )
+        return result.all()

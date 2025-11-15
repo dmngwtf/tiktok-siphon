@@ -12,6 +12,7 @@ from handlers.start_handler import cmd_start
 from handlers.handlers import handle_media
 from handlers.stat_handler import cmd_stats, stats_callback  # ← ДОБАВИЛИ stats_callback
 from handlers.recognize_handler import handle_recognize_callback
+from handlers.all_stat_handler import cmd_all_stats
 
 load_dotenv()
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -24,6 +25,7 @@ dp = Dispatcher()
 # === РЕГИСТРАЦИЯ ХЕНДЛЕРОВ ===
 dp.message.register(cmd_start, CommandStart())
 dp.message.register(cmd_stats, Command("stats"))
+dp.message.register(cmd_all_stats, Command("all_stats"))
 dp.message.register(handle_media, F.text)
 
 # Пагинация статистики: stats_{user_id}_{page}
